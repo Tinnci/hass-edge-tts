@@ -97,7 +97,8 @@ curl -o hello.mp3 'http://homeassistant.local:8123/api/tts_proxy/edge?rate=+20%&
 > The `tts_token` can be found in the tts entity attributes.
 
 
-## Thanks
+## Links
 
 - https://github.com/rany2/edge-tts
+- https://www.skills.sh/aahl/skills/edge-tts
 - https://github.com/ag2s20150909/TTS
