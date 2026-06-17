@@ -53,3 +53,8 @@ max-complexity = 25
     "S106",
     "SLF001",
 ]
+# Maintenance CLI: it prints progress and lives outside the package tree.
+"scripts/**" = [
+    "INP001",
+    "T201",
+]

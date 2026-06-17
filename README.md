@@ -39,10 +39,30 @@ call service \
 <img width="500" height="300" alt="call service" src="https://github.com/user-attachments/assets/fa353f2d-623b-460b-8fa4-0cbbc233f073" />
 
 
-#### Supported languages
+#### Voices
 
-- [speaking languages](https://docs.microsoft.com/zh-CN/azure/cognitive-services/speech-service/speech-synthesis-markup?tabs=csharp#adjust-speaking-languages)
-- [list of voices](https://github.com/hasscc/hass-edge-tts/blob/main/custom_components/edge_tts/const.py)
+All voices Microsoft offers (300+) are supported. The list is fetched live from
+Microsoft at startup, so newly released voices appear automatically; a bundled
+snapshot is used as an offline fallback.
+
+- In the UI, the **voice** picker for a language is populated automatically
+  (Assist pipeline and the `tts.speak` action).
+- To enumerate every voice with locale / gender / style metadata, call the
+  [`edge_tts.list_voices`](https://my.home-assistant.io/redirect/developer_call_service/?service=edge_tts.list_voices)
+  action (returns response data). Optional filters: `language` (locale prefix,
+  e.g. `zh` or `zh-CN`) and `gender` (`Female` / `Male`).
+
+```yaml
+action: edge_tts.list_voices
+data:
+  language: zh
+response_variable: voices
+```
+
+- Regenerate the bundled snapshot after Microsoft ships new voices:
+  `uv run python scripts/refresh_voices.py`
+- [Reference list of voices](https://github.com/Tinnci/hass-edge-tts/blob/main/custom_components/edge_tts/const.py)
+
 
 
 ## Using
@@ -55,6 +75,14 @@ call service \
 
 - [`voice`](https://docs.microsoft.com/zh-CN/azure/cognitive-services/speech-service/speech-synthesis-markup?tabs=csharp#use-multiple-voices)
 - [`pitch` / `rate` / `volume`](https://docs.microsoft.com/zh-CN/azure/cognitive-services/speech-service/speech-synthesis-markup?tabs=csharp#adjust-prosody)
+
+Per call, prosody accepts either signed strings (`rate: +10%`, `pitch: -5Hz`,
+`volume: +10%`) or plain integers (`rate: 10`, `pitch: -5`, `volume: 10`),
+which are converted automatically.
+
+Default `voice`, `rate`, `pitch` and `volume` can also be set once in the
+integration's **Configure** (options) dialog; per-call options always override
+those defaults.
 
 > `style` / `styledegree` / `role` / `contour` are no longer supported ([#8](https://github.com/hasscc/hass-edge-tts/issues/8)).
 

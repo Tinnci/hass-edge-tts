@@ -11,9 +11,10 @@ from homeassistant.components.tts import (
     TTSAudioRequest,
     TTSAudioResponse,
     TtsAudioType,
+    Voice,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -21,14 +22,51 @@ from homeassistant.util import ulid
 
 import edge_tts
 
-from .const import DEFAULT_LANG, DEFAULT_VOICE, DOMAIN, SUPPORTED_VOICES
+from .const import (
+    CONF_PITCH,
+    CONF_RATE,
+    CONF_VOICE,
+    CONF_VOLUME,
+    DEFAULT_LANG,
+    DEFAULT_PITCH,
+    DEFAULT_RATE,
+    DEFAULT_VOICE,
+    DEFAULT_VOLUME,
+    DOMAIN,
+    SUPPORTED_VOICES,
+)
+from .voices import async_get_voice_catalog, cached_catalog, voice_label
 
 _LOGGER = logging.getLogger(__name__)
 
+# Locale -> a representative default voice, used when only a language is given.
 SUPPORTED_LANGUAGES = {
     **dict(zip(SUPPORTED_VOICES.values(), SUPPORTED_VOICES.keys(), strict=True)),
     DEFAULT_LANG: DEFAULT_VOICE,
 }
+
+# Style options removed by Microsoft; warn if anyone still passes them.
+_STYLE_OPTIONS = ("style", "styledegree", "role")
+
+
+def _as_edge_value(value: str | float, unit: str) -> str:
+    """Coerce a prosody option to the signed string Edge expects.
+
+    Accepts integers/floats (``10`` -> ``"+10%"``) as well as strings that are
+    already formatted (``"+10%"``, ``"-5Hz"``) or are bare numbers (``"10"``).
+    """
+    if isinstance(value, str):
+        text = value.strip().replace(" ", "+")
+        if text.endswith(("%", "Hz", "st")):
+            return text
+        try:
+            number = int(float(text))
+        except ValueError:
+            # Leave it to edge_tts to validate and raise a clear error.
+            return value
+    else:
+        number = int(value)
+    return f"{'+' if number >= 0 else '-'}{abs(number)}{unit}"
 
 
 async def async_setup_entry(
@@ -62,10 +100,6 @@ class EdgeTTSEntity(TextToSpeechEntity):
         }
         self._attr_extra_state_attributes = {}
 
-        # Prosody and style options
-        self._prosody_options = ["pitch", "rate", "volume"]
-        self._style_options = ["style", "styledegree", "role"]
-
     async def async_added_to_hass(self) -> None:
         domain_data = self.hass.data.setdefault(DOMAIN, {})
         domain_data["tts_entity_id"] = self.entity_id
@@ -78,6 +112,10 @@ class EdgeTTSEntity(TextToSpeechEntity):
         )
         self._attr_extra_state_attributes["access_tokens"] = access_tokens.copy()
 
+        # Warm the voice catalogue so the voice picker is populated. Failures
+        # degrade to the bundled snapshot inside async_get_voice_catalog.
+        await async_get_voice_catalog(self.hass)
+
     @property
     def default_language(self) -> str:
         """Return the default language from options."""
@@ -85,13 +123,31 @@ class EdgeTTSEntity(TextToSpeechEntity):
 
     @property
     def supported_languages(self) -> list[str]:
-        """Return list of supported languages."""
-        return [*SUPPORTED_LANGUAGES.keys(), *SUPPORTED_VOICES.keys()]
+        """Return supported languages: locales plus raw voice names."""
+        catalog = cached_catalog(self.hass)
+        locales = sorted({entry["locale"] for entry in catalog})
+        names = sorted(entry["short_name"] for entry in catalog)
+        return [*locales, *names]
 
     @property
     def supported_options(self) -> list[str]:
-        """Return a list of supported options."""
-        return ["voice", *self._prosody_options]
+        """Return a list of supported per-request options."""
+        return [CONF_VOICE, CONF_PITCH, CONF_RATE, CONF_VOLUME]
+
+    @callback
+    def async_get_supported_voices(self, language: str) -> list[Voice] | None:
+        """Return the voices selectable for a language in the HA UI."""
+        catalog = cached_catalog(self.hass)
+        matches = [entry for entry in catalog if entry["locale"] == language]
+        if not matches:
+            # ``language`` may itself be a raw voice name; offer its siblings.
+            selected = next((e for e in catalog if e["short_name"] == language), None)
+            if selected is not None:
+                matches = [e for e in catalog if e["locale"] == selected["locale"]]
+        if not matches:
+            return None
+        matches.sort(key=lambda entry: entry["short_name"])
+        return [Voice(entry["short_name"], voice_label(entry)) for entry in matches]
 
     async def async_get_tts_audio(
         self, message: str, language: str, options: dict[str, Any]
@@ -114,14 +170,14 @@ class EdgeTTSEntity(TextToSpeechEntity):
         opt = {CONF_LANG: language}
         if language in SUPPORTED_VOICES:
             opt[CONF_LANG] = SUPPORTED_VOICES[language]
-            opt["voice"] = language
+            opt[CONF_VOICE] = language
         opt = {**self._config_entry.options, **opt, **(options or {})}
 
         lang = opt.get(CONF_LANG) or language or DEFAULT_LANG
-        voice = opt.get("voice") or SUPPORTED_LANGUAGES.get(lang) or DEFAULT_VOICE
+        voice = opt.get(CONF_VOICE) or SUPPORTED_LANGUAGES.get(lang) or DEFAULT_VOICE
 
-        for f in self._style_options:
-            if f in opt:
+        for field in _STYLE_OPTIONS:
+            if field in opt:
                 _LOGGER.warning(
                     "Edge TTS options style/styledegree/role are no longer supported, "
                     "please remove them from your automation or script. "
@@ -135,9 +191,9 @@ class EdgeTTSEntity(TextToSpeechEntity):
         tts = edge_tts.Communicate(
             message,
             voice=voice,
-            pitch=opt.get("pitch", "+0Hz"),
-            rate=opt.get("rate", "+0%"),
-            volume=opt.get("volume", "+0%"),
+            pitch=_as_edge_value(opt.get(CONF_PITCH, DEFAULT_PITCH), "Hz"),
+            rate=_as_edge_value(opt.get(CONF_RATE, DEFAULT_RATE), "%"),
+            volume=_as_edge_value(opt.get(CONF_VOLUME, DEFAULT_VOLUME), "%"),
         )
         try:
             for chunk in tts.stream_sync():

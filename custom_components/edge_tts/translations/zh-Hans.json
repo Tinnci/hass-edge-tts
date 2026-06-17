@@ -1,0 +1,44 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "微软 Edge 文字转语音",
+        "description": "添加微软 Edge 文字转语音服务，无需账号。"
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "已配置。仅允许添加一个实例。"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Edge TTS 默认参数",
+        "description": "默认合成参数。每次调用 tts.speak 时传入的参数会覆盖这里的默认值。",
+        "data": {
+          "language": "默认语言",
+          "voice": "默认音色",
+          "rate": "语速调整（%）",
+          "pitch": "音调调整（Hz）",
+          "volume": "音量调整（%）"
+        }
+      }
+    }
+  },
+  "services": {
+    "list_voices": {
+      "name": "列出音色",
+      "description": "列出 Edge TTS 引擎可合成的全部音色，包含地区、性别与风格信息。",
+      "fields": {
+        "language": {
+          "name": "语言",
+          "description": "仅返回地区前缀匹配的音色，例如 “zh” 或 “zh-CN”。"
+        },
+        "gender": {
+          "name": "性别",
+          "description": "仅返回该性别的音色。"
+        }
+      }
+    }
+  }
+}

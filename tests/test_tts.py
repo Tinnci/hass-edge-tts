@@ -2,12 +2,15 @@
 
 from unittest.mock import patch
 
+import pytest
+from homeassistant.components.tts import Voice
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.edge_tts.const import DEFAULT_LANG, DEFAULT_VOICE, DOMAIN
-from custom_components.edge_tts.tts import EdgeTTSEntity
+from custom_components.edge_tts.tts import EdgeTTSEntity, _as_edge_value
+from custom_components.edge_tts.voices import async_get_voice_catalog
 
 
 async def test_entry_sets_up_tts_entity(hass: HomeAssistant) -> None:
@@ -56,3 +59,84 @@ async def test_get_tts_audio_returns_mp3(hass: HomeAssistant) -> None:
     assert fmt == "mp3"
     assert data == b"\x01\x02\x03"
     communicate.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    ("value", "unit", "expected"),
+    [
+        (10, "%", "+10%"),
+        (-5, "Hz", "-5Hz"),
+        (0, "%", "+0%"),
+        (10.0, "%", "+10%"),
+        ("10", "%", "+10%"),
+        ("+10%", "%", "+10%"),
+        ("-5Hz", "Hz", "-5Hz"),
+        ("+0%", "%", "+0%"),
+    ],
+)
+def test_as_edge_value(value: object, unit: str, expected: str) -> None:
+    """Ints/floats/bare strings become signed Edge strings; formatted pass through."""
+    assert _as_edge_value(value, unit) == expected
+
+
+async def test_prosody_options_formatted_for_edge(hass: HomeAssistant) -> None:
+    """Integer prosody options are converted to the strings Edge expects."""
+    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
+    entry.add_to_hass(hass)
+    entity = EdgeTTSEntity(hass, entry)
+
+    with patch("custom_components.edge_tts.tts.edge_tts.Communicate") as communicate:
+        communicate.return_value.stream_sync.return_value = [
+            {"type": "audio", "data": b"x"}
+        ]
+        await entity.async_get_tts_audio(
+            "hi", "zh-CN", {"rate": 10, "pitch": -5, "volume": 20}
+        )
+
+    _, kwargs = communicate.call_args
+    assert kwargs["rate"] == "+10%"
+    assert kwargs["pitch"] == "-5Hz"
+    assert kwargs["volume"] == "+20%"
+
+
+async def test_async_get_supported_voices_by_locale(hass: HomeAssistant) -> None:
+    """A locale returns its voices as Voice objects with friendly labels."""
+    entry = MockConfigEntry(domain=DOMAIN, data={})
+    entry.add_to_hass(hass)
+    entity = EdgeTTSEntity(hass, entry)
+    await async_get_voice_catalog(hass)  # warm the cache
+
+    voices = entity.async_get_supported_voices("zh-CN")
+    assert voices is not None
+    assert all(isinstance(v, Voice) for v in voices)
+    ids = [v.voice_id for v in voices]
+    assert "zh-CN-XiaoxiaoNeural" in ids
+    label = next(v.name for v in voices if v.voice_id == "zh-CN-XiaoxiaoNeural")
+    assert "Xiaoxiao" in label
+
+
+async def test_async_get_supported_voices_by_raw_voice_name(
+    hass: HomeAssistant,
+) -> None:
+    """Passing a raw voice name returns the sibling voices of its locale."""
+    entry = MockConfigEntry(domain=DOMAIN, data={})
+    entry.add_to_hass(hass)
+    entity = EdgeTTSEntity(hass, entry)
+    await async_get_voice_catalog(hass)
+
+    voices = entity.async_get_supported_voices("zh-CN-XiaoxiaoNeural")
+    assert voices is not None
+    ids = [v.voice_id for v in voices]
+    assert "zh-CN-XiaoxiaoNeural" in ids
+    assert "zh-CN-YunxiNeural" in ids
+
+
+async def test_async_get_supported_voices_unknown_returns_none(
+    hass: HomeAssistant,
+) -> None:
+    entry = MockConfigEntry(domain=DOMAIN, data={})
+    entry.add_to_hass(hass)
+    entity = EdgeTTSEntity(hass, entry)
+    await async_get_voice_catalog(hass)
+
+    assert entity.async_get_supported_voices("xx-XX") is None

@@ -1,0 +1,44 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Microsoft Edge TTS",
+        "description": "Add the Microsoft Edge text-to-speech service. No account is required."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Already configured. Only a single instance is allowed."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Edge TTS defaults",
+        "description": "Default synthesis settings. Per-call tts.speak options always override these.",
+        "data": {
+          "language": "Default language",
+          "voice": "Default voice",
+          "rate": "Speed adjustment (%)",
+          "pitch": "Pitch adjustment (Hz)",
+          "volume": "Volume adjustment (%)"
+        }
+      }
+    }
+  },
+  "services": {
+    "list_voices": {
+      "name": "List voices",
+      "description": "List every voice the Edge TTS engine can synthesize, with locale, gender and style metadata.",
+      "fields": {
+        "language": {
+          "name": "Language",
+          "description": "Only return voices whose locale starts with this, e.g. \"zh\" or \"zh-CN\"."
+        },
+        "gender": {
+          "name": "Gender",
+          "description": "Only return voices of this gender."
+        }
+      }
+    }
+  }
+}

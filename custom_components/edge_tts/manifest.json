@@ -10,5 +10,5 @@
   "issue_tracker": "https://github.com/Tinnci/hass-edge-tts/issues",
   "loggers": ["edge_tts"],
   "requirements": ["edge-tts>=7.2.0"],
-  "version": "0.7.8"
+  "version": "0.8.0"
 }

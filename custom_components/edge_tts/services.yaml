@@ -1,0 +1,12 @@
+list_voices:
+  fields:
+    language:
+      example: zh-CN
+      selector:
+        text:
+    gender:
+      selector:
+        select:
+          options:
+            - "Female"
+            - "Male"
