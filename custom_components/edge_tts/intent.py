@@ -1,20 +1,20 @@
 import logging
 import re
-import voluptuous as vol
-
 from base64 import urlsafe_b64encode
+from typing import ClassVar
 from urllib.parse import urlencode
+
+import voluptuous as vol
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import intent
 from homeassistant.helpers.network import get_url
 
 from .const import DOMAIN
 
-
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_intents(hass: HomeAssistant):
+async def async_setup_intents(hass: HomeAssistant) -> None:
     """Set up the intents."""
     intent.async_register(hass, EdgeConvertTextToSound())
     intents = hass.data.get("intent") or {}
@@ -24,22 +24,31 @@ async def async_setup_intents(hass: HomeAssistant):
 class EdgeConvertTextToSound(intent.IntentHandler):
     intent_type = "EdgeConvertTextToSound"
     description = "Convert text to sound URL via EdgeTTS"
-    slot_schema = {
-        vol.Required("message", description="The text to speak, don't include any line breaks, tabs, emoji."): intent.non_empty_string,
+    slot_schema: ClassVar[dict] = {
+        vol.Required(
+            "message",
+            description=(
+                "The text to speak, don't include any line breaks, tabs, emoji."
+            ),
+        ): intent.non_empty_string,
         vol.Optional("engine", description=f"TTS engine, default: `{DOMAIN}`"): str,
-        vol.Optional("rate", description="Speech speed"): vol.All(vol.Coerce(int), vol.Range(-100, 100)),
-        vol.Optional("volume", description="Speech volume"): vol.All(vol.Coerce(int), vol.Range(-100, 100)),
+        vol.Optional("rate", description="Speech speed"): vol.All(
+            vol.Coerce(int), vol.Range(-100, 100)
+        ),
+        vol.Optional("volume", description="Speech volume"): vol.All(
+            vol.Coerce(int), vol.Range(-100, 100)
+        ),
         vol.Optional("filename", description="Audio file name, required"): str,
     }
 
-    async def async_handle(self, intent_obj: intent.Intent):
+    async def async_handle(self, intent_obj: intent.Intent) -> intent.IntentResponse:
         """Handle the intent."""
         hass = intent_obj.hass
         slots = self.async_validate_slots(intent_obj.slots)
         message = slots.get("message", {}).get("value", "")
         message = str(message).replace("\n", " ").replace("\t", " ")
 
-        pattern = r"[\r\U0001F600-\U0001F64F\U0001F300-\U0001F5FF\U0001F680-\U0001F6FF\U0001F1E0-\U0001F1FF\U00002702-\U000027B0\U000024C2-\U0001F251]"
+        pattern = r"[\r\U0001F600-\U0001F64F\U0001F300-\U0001F5FF\U0001F680-\U0001F6FF\U0001F1E0-\U0001F1FF\U00002702-\U000027B0\U000024C2-\U0001F251]"  # noqa: E501 - emoji character-class regex; not safely wrappable
         message = re.sub(pattern, "", message)
 
         rate = slots.get("rate", {}).get("value") or 0
@@ -60,9 +69,14 @@ class EdgeConvertTextToSound(intent.IntentHandler):
         url = get_url(hass, prefer_external=True) + api
 
         response.response_type = intent.IntentResponseType.ACTION_DONE
-        response.async_set_speech_slots({
-            "tts_url": url,
-            "notice": "This audio URL must remain intact, no parameters can be discarded; "
-                      "the URL contains sensitive information and is not recommended to appear in any text content.",
-        })
+        response.async_set_speech_slots(
+            {
+                "tts_url": url,
+                "notice": (
+                    "This audio URL must remain intact, no parameters can be "
+                    "discarded; the URL contains sensitive information and is "
+                    "not recommended to appear in any text content."
+                ),
+            }
+        )
         return response

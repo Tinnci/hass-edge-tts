@@ -2,16 +2,21 @@
 
 This component is based on the TTS service of Microsoft Edge browser, no need to apply for `app_key`.
 
+> [!NOTE]
+> This is a maintained fork of [`hasscc/hass-edge-tts`](https://github.com/hasscc/hass-edge-tts) by [@Tinnci](https://github.com/Tinnci),
+> adding quality tooling: Ruff lint/format, pre-commit, a pytest suite that loads the integration in a real Home Assistant, and CI gates.
+> All credit for the original integration goes to [@al-one](https://github.com/al-one), [@rany2](https://github.com/rany2) and [@dscao](https://github.com/dscao).
+
 
 ## Install
 
-[![Install repository](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=hasscc&repository=hass-edge-tts&category=integration)
+[![Install repository](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Tinnci&repository=hass-edge-tts&category=integration)
 
 > Download and copy `custom_components/edge_tts` folder to `custom_components` folder in your HomeAssistant config folder
 
 ```shell
 # Auto install via terminal shell
-wget -O - https://hacs.vip/get | DOMAIN=edge_tts REPO_PATH=hasscc/hass-edge-tts ARCHIVE_TAG=main bash -
+wget -O - https://hacs.vip/get | DOMAIN=edge_tts REPO_PATH=Tinnci/hass-edge-tts ARCHIVE_TAG=main bash -
 ```
 
 
@@ -22,16 +27,16 @@ wget -O - https://hacs.vip/get | DOMAIN=edge_tts REPO_PATH=hasscc/hass-edge-tts 
 [![Add Integration](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start?domain=edge_tts)
 
 add integration \
-<img width="500" height="300" alt="add integration" src="https://github.com/user-attachments/assets/3a4f3a30-bcd1-447e-8044-36c2bc3f78b0" /> 
+<img width="500" height="300" alt="add integration" src="https://github.com/user-attachments/assets/3a4f3a30-bcd1-447e-8044-36c2bc3f78b0" />
  \
 config option \
-<img width="500" height="300" alt="config option" src="https://github.com/user-attachments/assets/0cadaf9e-d316-49b9-b28d-f1a8f7e7551c" /> 
+<img width="500" height="300" alt="config option" src="https://github.com/user-attachments/assets/0cadaf9e-d316-49b9-b28d-f1a8f7e7551c" />
  \
 entity \
-<img width="500" height="300" alt="entity" src="https://github.com/user-attachments/assets/42e8a6d7-c5e7-4f8f-9093-d93ca678ce87" /> 
+<img width="500" height="300" alt="entity" src="https://github.com/user-attachments/assets/42e8a6d7-c5e7-4f8f-9093-d93ca678ce87" />
  \
 call service \
-<img width="500" height="300" alt="call service" src="https://github.com/user-attachments/assets/fa353f2d-623b-460b-8fa4-0cbbc233f073" /> 
+<img width="500" height="300" alt="call service" src="https://github.com/user-attachments/assets/fa353f2d-623b-460b-8fa4-0cbbc233f073" />
 
 
 #### Supported languages

@@ -1,24 +1,35 @@
+from __future__ import annotations
+
+from typing import Any
+
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.core import callback
 from homeassistant.components.tts import CONF_LANG
+from homeassistant.core import callback
+from homeassistant.helpers.selector import (
+    SelectSelector,
+    SelectSelectorConfig,
+)
+
 from .const import DOMAIN, SUPPORTED_VOICES
-from homeassistant.helpers.selector import SelectSelector, SelectSelectorConfig, SelectSelectorMode
 
 SUPPORTED_LANGUAGES_LIST = {
-    **dict(zip(SUPPORTED_VOICES.values(), SUPPORTED_VOICES.keys())),
-    'zh-CN': 'zh-CN-XiaoxiaoNeural',
+    **dict(zip(SUPPORTED_VOICES.values(), SUPPORTED_VOICES.keys(), strict=True)),
+    "zh-CN": "zh-CN-XiaoxiaoNeural",
 }
 
-SUPPORTED_LANGUAGES = list([*SUPPORTED_LANGUAGES_LIST.keys(), *SUPPORTED_VOICES.keys()])
+SUPPORTED_LANGUAGES = [*SUPPORTED_LANGUAGES_LIST.keys(), *SUPPORTED_VOICES.keys()]
 
-DEFAULT_LANG = 'zh-CN'
+DEFAULT_LANG = "zh-CN"
 
 
 class EdgeTTSConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Edge TTS config flow."""
 
-    async def async_step_user(self, user_input=None):
+    async def async_step_user(
+        self,
+        user_input: dict[str, Any] | None = None,  # noqa: ARG002
+    ) -> config_entries.ConfigFlowResult:
         """Handle a flow initiated by the user."""
         # 检查是否已经有配置条目
         if self._async_current_entries():
@@ -29,18 +40,23 @@ class EdgeTTSConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry):
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> EdgeTTSOptionsFlowHandler:
         """Get the options flow for this handler."""
         return EdgeTTSOptionsFlowHandler(config_entry)
+
 
 class EdgeTTSOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle an options flow for Edge TTS."""
 
-    def __init__(self, config_entry):
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
         self._config_entry = config_entry
 
-    async def async_step_init(self, user_input=None):
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
         """Manage the options."""
         if user_input is not None:
             # 更新配置到 hass.data
@@ -52,14 +68,15 @@ class EdgeTTSOptionsFlowHandler(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema({
-                vol.Required(
-                    CONF_LANG, 
-                    default=default_language): SelectSelector(
-                    SelectSelectorConfig(
-                        options=SUPPORTED_LANGUAGES,
-                        multiple=False,translation_key=CONF_LANG
-                    )
-                ),
-            })
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_LANG, default=default_language): SelectSelector(
+                        SelectSelectorConfig(
+                            options=SUPPORTED_LANGUAGES,
+                            multiple=False,
+                            translation_key=CONF_LANG,
+                        )
+                    ),
+                }
+            ),
         )

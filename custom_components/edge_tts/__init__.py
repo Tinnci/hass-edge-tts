@@ -1,16 +1,20 @@
 """The Edge TTS integration."""
+
 import logging
-from aiohttp import web
 from base64 import urlsafe_b64decode
-from homeassistant.core import HomeAssistant
-from homeassistant.const import Platform
-from homeassistant.config_entries import ConfigEntry
+
+from aiohttp import web
+from homeassistant.components.http import KEY_AUTHENTICATED, KEY_HASS, HomeAssistantView
 from homeassistant.components.tts import async_create_stream
-from homeassistant.components.http import HomeAssistantView, KEY_HASS, KEY_AUTHENTICATED
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
+from homeassistant.core import HomeAssistant
+
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 PLATFORMS = [Platform.TTS]
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Edge TTS from a config entry."""
@@ -22,9 +26,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.http.register_view(EdgeTtsProxyView(url="/api/tts_proxy/edge/{filename:.*}"))
     return True
 
+
 async def options_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Handle options update."""
     await hass.config_entries.async_reload(entry.entry_id)
+
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
@@ -37,17 +43,19 @@ class EdgeTtsProxyView(HomeAssistantView):
     url = "/api/tts_proxy/edge"
     name = "api:tts_proxy_edge"
 
-    def __init__(self, url=None):
+    def __init__(self, url: str | None = None) -> None:
         if url:
             self.url = url
 
-    async def get(self, request: web.Request, **kwargs) -> web.StreamResponse:
+    async def get(self, request: web.Request, **_kwargs: str) -> web.StreamResponse:
         hass = request.app[KEY_HASS]
         domain_data = hass.data.setdefault(DOMAIN, {})
         access_token = request.query.get("token")
         authenticated = request.get(KEY_AUTHENTICATED)
         if not authenticated and access_token:
-            authenticated = access_token in domain_data.get("access_tokens", {}).values()
+            authenticated = (
+                access_token in domain_data.get("access_tokens", {}).values()
+            )
         if not authenticated:
             raise web.HTTPUnauthorized
         if not (message := request.query.get("message")):
@@ -58,7 +66,8 @@ class EdgeTtsProxyView(HomeAssistantView):
         entity_id = request.query.get("entity_id") or domain_data.get("tts_entity_id")
         try:
             stream = async_create_stream(
-                hass, entity_id or "tts.edge_tts",
+                hass,
+                entity_id or "tts.edge_tts",
                 language=request.query.get("language"),
                 options={
                     "voice": request.query.get("voice", ""),
@@ -66,7 +75,7 @@ class EdgeTtsProxyView(HomeAssistantView):
                     "volume": request.query.get("volume", "+10%").replace(" ", "+"),
                 },
             )
-        except Exception as err:
+        except Exception as err:  # noqa: BLE001 - boundary: surface any stream-setup error as JSON 400
             return self.json({"error": str(err)}, 400)
 
         stream.async_set_message(message)
@@ -79,7 +88,7 @@ class EdgeTtsProxyView(HomeAssistantView):
                     await response.prepare(request)
                 await response.write(data)
         except Exception as err:
-            _LOGGER.error("Error streaming tts", exc_info=True)
+            _LOGGER.exception("Error streaming tts")
             return self.json({"error": str(err)}, 400)
         if response is None:
             return web.Response(status=500)
