@@ -15,6 +15,10 @@ All credit for the original integration goes to
 [@al-one](https://github.com/al-one), [@rany2](https://github.com/rany2), and
 [@dscao](https://github.com/dscao).
 
+This maintained distribution is source-available for non-commercial use under
+the PolyForm Noncommercial License 1.0.0. Upstream-derived portions keep their
+original notices and license terms; see `NOTICE.md`.
+
 ## Current capabilities
 
 - Home Assistant config flow and options flow.
@@ -176,3 +180,14 @@ playback gates. Those belong to the satellite runtime around
 - <https://github.com/rany2/edge-tts>
 - <https://github.com/hasscc/hass-edge-tts>
 - <https://www.home-assistant.io/integrations/tts/>
+
+## License
+
+Source-available for non-commercial use under the PolyForm Noncommercial
+License 1.0.0. See `LICENSE`.
+
+Commercial use is not permitted without a separate license. This is not an OSI
+open-source license because commercial use is restricted.
+
+Upstream-derived portions keep their original notices and license terms. See
+`NOTICE.md`.

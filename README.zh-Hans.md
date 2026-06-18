@@ -8,6 +8,8 @@
 
 原始集成作者包括 [@al-one](https://github.com/al-one)、[@rany2](https://github.com/rany2) 和 [@dscao](https://github.com/dscao)。
 
+本维护发行版以 PolyForm Noncommercial License 1.0.0 提供源码，可用于非商业用途。来自上游的部分仍保留原始声明和许可证条款；详见 `NOTICE.md`。
+
 ## 当前能力
 
 - Home Assistant config flow 和 options flow。
@@ -163,3 +165,11 @@ uv run ruff format --check .
 - <https://github.com/rany2/edge-tts>
 - <https://github.com/hasscc/hass-edge-tts>
 - <https://www.home-assistant.io/integrations/tts/>
+
+## 许可证
+
+本维护发行版以 PolyForm Noncommercial License 1.0.0 提供源码，仅允许非商业用途。详见 `LICENSE`。
+
+由于限制商业使用，它不是 OSI 开源许可证。商业使用需要获得维护者的单独授权。
+
+来自上游的部分仍保留原始声明和许可证条款；详见 `NOTICE.md`。
