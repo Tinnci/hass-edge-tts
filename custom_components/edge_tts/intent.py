@@ -23,22 +23,33 @@ async def async_setup_intents(hass: HomeAssistant) -> None:
 
 class EdgeConvertTextToSound(intent.IntentHandler):
     intent_type = "EdgeConvertTextToSound"
-    description = "Convert text to sound URL via EdgeTTS"
+    description = (
+        "Convert text to a sound URL via Edge TTS / 通过 Edge TTS 转换文本为音频 URL"
+    )
     slot_schema: ClassVar[dict] = {
         vol.Required(
             "message",
             description=(
-                "The text to speak, don't include any line breaks, tabs, emoji."
+                "Text to speak; do not include line breaks, tabs, or emoji. "
+                "/ 要朗读的文本；不要包含换行、制表符或 emoji。"
             ),
         ): intent.non_empty_string,
-        vol.Optional("engine", description=f"TTS engine, default: `{DOMAIN}`"): str,
-        vol.Optional("rate", description="Speech speed"): vol.All(
+        vol.Optional(
+            "engine",
+            description=(
+                f"TTS engine, default: `{DOMAIN}` / TTS 引擎，默认 `{DOMAIN}`"
+            ),
+        ): str,
+        vol.Optional("rate", description="Speech speed / 语速"): vol.All(
             vol.Coerce(int), vol.Range(-100, 100)
         ),
-        vol.Optional("volume", description="Speech volume"): vol.All(
+        vol.Optional("volume", description="Speech volume / 音量"): vol.All(
             vol.Coerce(int), vol.Range(-100, 100)
         ),
-        vol.Optional("filename", description="Audio file name, required"): str,
+        vol.Optional(
+            "filename",
+            description="Audio file name, required / 音频文件名，必填",
+        ): str,
     }
 
     async def async_handle(self, intent_obj: intent.Intent) -> intent.IntentResponse:

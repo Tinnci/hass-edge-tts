@@ -1,5 +1,7 @@
 # Microsoft Edge TTS for Home Assistant
 
+[English](README.md) | [简体中文](README.zh-Hans.md)
+
 A Home Assistant custom integration that exposes Microsoft Edge's free TTS
 service as a Home Assistant TTS engine. No Azure app key is required.
 
