@@ -33,6 +33,10 @@ original notices and license terms; see `NOTICE.md`.
   - `pitch`
   - `volume`
 - Numeric prosody normalization, for example `rate: 10` -> `+10%`.
+- Latest synthesis trace exposed through `hass.data["edge_tts"]` and the TTS
+  entity attribute `last_synthesis_trace`. The trace records status, voice,
+  prosody, message character count, audio bytes, chunk counts, elapsed time,
+  and failure phase without retaining spoken text.
 - Legacy direct proxy helper through the integration's HTTP view.
 - Test suite that loads the custom integration in a real HA test harness.
 
@@ -171,9 +175,9 @@ The tests cover:
 ## Notes for voice assistant deployments
 
 This integration only synthesizes speech. It does not control satellite speaker
-volume, wakeword sensitivity, microphone gain, OPUS fallback clips, or TTS
-playback gates. Those belong to the satellite runtime around
-`wyoming-satellite`.
+volume, wakeword sensitivity, microphone gain, OPUS fallback clips,
+capture/playback routing, or AEC policy. Those belong to the satellite runtime
+around `wyoming-satellite`.
 
 ## Links
 

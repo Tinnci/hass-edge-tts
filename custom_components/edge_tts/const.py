@@ -30,6 +30,11 @@ DEFAULT_VOLUME = 0
 # Service that enumerates every voice the engine can synthesize.
 SERVICE_LIST_VOICES = "list_voices"
 
+# Runtime diagnostic key. The value is a bounded summary of the latest synthesis
+# request and intentionally excludes the original message text.
+DATA_LAST_SYNTHESIS_TRACE = "last_synthesis_trace"
+TTS_SYNTHESIS_TRACE_SCHEMA_VERSION = 1
+
 # --- BEGIN GENERATED VOICES (322 voices) ---
 VOICES: dict[str, tuple[str, str]] = {
     # Each value is the voice's locale and gender.

@@ -1,5 +1,7 @@
 """The speech service."""
 
+import contextlib
+import datetime as dt
 import logging
 import time
 from collections.abc import AsyncGenerator
@@ -27,6 +29,7 @@ from .const import (
     CONF_RATE,
     CONF_VOICE,
     CONF_VOLUME,
+    DATA_LAST_SYNTHESIS_TRACE,
     DEFAULT_LANG,
     DEFAULT_PITCH,
     DEFAULT_RATE,
@@ -34,6 +37,7 @@ from .const import (
     DEFAULT_VOLUME,
     DOMAIN,
     SUPPORTED_VOICES,
+    TTS_SYNTHESIS_TRACE_SCHEMA_VERSION,
 )
 from .voices import async_get_voice_catalog, cached_catalog, voice_label
 
@@ -47,6 +51,14 @@ SUPPORTED_LANGUAGES = {
 
 # Style options removed by Microsoft; warn if anyone still passes them.
 _STYLE_OPTIONS = ("style", "styledegree", "role")
+
+
+class _SynthesisError(HomeAssistantError):
+    """Internal synthesis error that carries a structured diagnostic trace."""
+
+    def __init__(self, message: str, trace: dict[str, Any]) -> None:
+        super().__init__(message)
+        self.trace = trace
 
 
 def _as_edge_value(value: str | float, unit: str) -> str:
@@ -157,16 +169,22 @@ class EdgeTTSEntity(TextToSpeechEntity):
     async def async_process_tts_audio(
         self, message: str, language: str, options: dict[str, Any]
     ) -> bytes | None:
-        return await self.hass.async_add_executor_job(
-            self._process_tts_audio,
-            message,
-            language,
-            options,
-        )
+        try:
+            audio, trace = await self.hass.async_add_executor_job(
+                self._process_tts_audio,
+                message,
+                language,
+                options,
+            )
+        except _SynthesisError as err:
+            self._record_synthesis_trace(err.trace)
+            raise
+        self._record_synthesis_trace(trace)
+        return audio
 
     def _process_tts_audio(
         self, message: str, language: str, options: dict[str, Any]
-    ) -> bytes | None:
+    ) -> tuple[bytes | None, dict[str, Any]]:
         opt = {CONF_LANG: language}
         if language in SUPPORTED_VOICES:
             opt[CONF_LANG] = SUPPORTED_VOICES[language]
@@ -175,6 +193,9 @@ class EdgeTTSEntity(TextToSpeechEntity):
 
         lang = opt.get(CONF_LANG) or language or DEFAULT_LANG
         voice = opt.get(CONF_VOICE) or SUPPORTED_LANGUAGES.get(lang) or DEFAULT_VOICE
+        pitch = _as_edge_value(opt.get(CONF_PITCH, DEFAULT_PITCH), "Hz")
+        rate = _as_edge_value(opt.get(CONF_RATE, DEFAULT_RATE), "%")
+        volume = _as_edge_value(opt.get(CONF_VOLUME, DEFAULT_VOLUME), "%")
 
         for field in _STYLE_OPTIONS:
             if field in opt:
@@ -188,28 +209,71 @@ class EdgeTTSEntity(TextToSpeechEntity):
         _LOGGER.debug("%s: %s", self.name, [message, opt])
         mp3 = b""
         start_time = time.perf_counter()
+        audio_chunks = 0
+        metadata_chunks = 0
         tts = edge_tts.Communicate(
             message,
             voice=voice,
-            pitch=_as_edge_value(opt.get(CONF_PITCH, DEFAULT_PITCH), "Hz"),
-            rate=_as_edge_value(opt.get(CONF_RATE, DEFAULT_RATE), "%"),
-            volume=_as_edge_value(opt.get(CONF_VOLUME, DEFAULT_VOLUME), "%"),
+            pitch=pitch,
+            rate=rate,
+            volume=volume,
         )
         try:
             for chunk in tts.stream_sync():
                 if chunk["type"] == "audio":
                     mp3 += chunk["data"]
+                    audio_chunks += 1
                 else:
+                    metadata_chunks += 1
                     _LOGGER.debug("Edge TTS metadata: %s", chunk)
         except edge_tts.exceptions.NoAudioReceived as exc:
+            trace = _synthesis_trace(
+                status="error",
+                started_at=start_time,
+                message=message,
+                language=lang,
+                requested_language=language,
+                voice=voice,
+                pitch=pitch,
+                rate=rate,
+                volume=volume,
+                audio_bytes=len(mp3),
+                audio_chunks=audio_chunks,
+                metadata_chunks=metadata_chunks,
+                error_type=type(exc).__name__,
+                error_phase="stream",
+            )
             _LOGGER.warning("No audio received for text: %s", message)
-            raise HomeAssistantError(
-                f"{self.name}: No audio received: {message}"
+            raise _SynthesisError(
+                f"{self.name}: No audio received: {message}", trace
             ) from exc
         end_time = time.perf_counter()
         elapsed_time = (end_time - start_time) * 1000
         _LOGGER.debug("load tts elapsed_time: %sms", elapsed_time)
-        return mp3
+        trace = _synthesis_trace(
+            status="ok",
+            started_at=start_time,
+            message=message,
+            language=lang,
+            requested_language=language,
+            voice=voice,
+            pitch=pitch,
+            rate=rate,
+            volume=volume,
+            audio_bytes=len(mp3),
+            audio_chunks=audio_chunks,
+            metadata_chunks=metadata_chunks,
+        )
+        return mp3, trace
+
+    def _record_synthesis_trace(self, trace: dict[str, Any]) -> None:
+        """Publish the latest synthesis trace to entity attributes and hass data."""
+        domain_data = self.hass.data.setdefault(DOMAIN, {})
+        domain_data[DATA_LAST_SYNTHESIS_TRACE] = dict(trace)
+        self._attr_extra_state_attributes[DATA_LAST_SYNTHESIS_TRACE] = dict(trace)
+        if self.entity_id:
+            with contextlib.suppress(RuntimeError):
+                self.async_write_ha_state()
 
     async def async_stream_tts_audio(
         self, request: TTSAudioRequest
@@ -255,3 +319,49 @@ class EdgeTTSEntity(TextToSpeechEntity):
             yield await self.async_process_tts_audio(
                 msg, request.language, request.options
             )
+
+
+def _synthesis_trace(  # noqa: PLR0913 - trace fields mirror the public diagnostic schema.
+    *,
+    status: str,
+    started_at: float,
+    message: str,
+    language: str,
+    requested_language: str,
+    voice: str,
+    pitch: str,
+    rate: str,
+    volume: str,
+    audio_bytes: int,
+    audio_chunks: int,
+    metadata_chunks: int,
+    error_type: str = "",
+    error_phase: str = "",
+) -> dict[str, Any]:
+    """Return a bounded TTS synthesis trace without retaining spoken text."""
+    elapsed_ms = round((time.perf_counter() - started_at) * 1000)
+    trace: dict[str, Any] = {
+        "schema_version": TTS_SYNTHESIS_TRACE_SCHEMA_VERSION,
+        "generated_at": dt.datetime.now(tz=dt.UTC).isoformat(),
+        "status": status,
+        "provider": "edge-tts",
+        "requested_language": requested_language,
+        "language": language,
+        "voice": voice,
+        "prosody": {
+            "pitch": pitch,
+            "rate": rate,
+            "volume": volume,
+        },
+        "message_chars": len(message),
+        "audio_format": "mp3",
+        "audio_bytes": audio_bytes,
+        "audio_chunks": audio_chunks,
+        "metadata_chunks": metadata_chunks,
+        "elapsed_ms": elapsed_ms,
+    }
+    if error_type:
+        trace["error_type"] = error_type
+    if error_phase:
+        trace["error_phase"] = error_phase
+    return trace

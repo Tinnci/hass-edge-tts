@@ -24,6 +24,9 @@
   - `pitch`
   - `volume`
 - 数值 prosody 会自动归一化，例如 `rate: 10` 转成 `+10%`。
+- 最新合成 trace 会暴露在 `hass.data["edge_tts"]` 和 TTS 实体属性
+  `last_synthesis_trace` 中。trace 记录状态、音色、prosody、消息字符数、
+  音频字节数、chunk 数、耗时和失败阶段，但不保留朗读原文。
 - 保留 legacy HTTP proxy helper。
 - 测试套件会在真实 Home Assistant 测试 harness 中加载自定义集成。
 
@@ -158,7 +161,7 @@ uv run ruff format --check .
 
 ## 语音助手部署说明
 
-本集成只负责合成语音。它不控制 satellite 扬声器音量、唤醒词灵敏度、麦克风增益、OPUS 本地 fallback 片段或 TTS 播放门控。这些能力应该放在 `wyoming-satellite` 周边的 satellite runtime 中实现。
+本集成只负责合成语音。它不控制 satellite 扬声器音量、唤醒词灵敏度、麦克风增益、OPUS 本地 fallback 片段、采集/播放路由或 AEC 策略。这些能力应该放在 `wyoming-satellite` 周边的 satellite runtime 中实现。
 
 ## 链接
 
