@@ -113,7 +113,7 @@ async def test_get_tts_audio_records_failure_trace(hass: HomeAssistant) -> None:
         communicate.return_value.stream_sync.side_effect = (
             edge_tts.exceptions.NoAudioReceived("empty")
         )
-        with pytest.raises(HomeAssistantError):
+        with pytest.raises(HomeAssistantError) as err:
             await entity.async_get_tts_audio("失败也不要保留原文", "zh-CN", {})
 
     trace = hass.data[DOMAIN][DATA_LAST_SYNTHESIS_TRACE]
@@ -123,6 +123,7 @@ async def test_get_tts_audio_records_failure_trace(hass: HomeAssistant) -> None:
     assert trace["audio_bytes"] == 0
     assert trace["message_chars"] == len("失败也不要保留原文")
     assert "失败也不要保留原文" not in str(trace)
+    assert "失败也不要保留原文" not in str(err.value)
 
 
 @pytest.mark.parametrize(

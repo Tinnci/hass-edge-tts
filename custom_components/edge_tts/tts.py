@@ -206,7 +206,12 @@ class EdgeTTSEntity(TextToSpeechEntity):
                 )
                 break
 
-        _LOGGER.debug("%s: %s", self.name, [message, opt])
+        _LOGGER.debug(
+            "%s synthesis request: message_chars=%d options=%s",
+            self.name,
+            len(message),
+            opt,
+        )
         mp3 = b""
         start_time = time.perf_counter()
         audio_chunks = 0
@@ -243,9 +248,10 @@ class EdgeTTSEntity(TextToSpeechEntity):
                 error_type=type(exc).__name__,
                 error_phase="stream",
             )
-            _LOGGER.warning("No audio received for text: %s", message)
+            _LOGGER.warning("No audio received for text length %d", len(message))
             raise _SynthesisError(
-                f"{self.name}: No audio received: {message}", trace
+                f"{self.name}: No audio received",
+                trace,
             ) from exc
         end_time = time.perf_counter()
         elapsed_time = (end_time - start_time) * 1000
@@ -302,7 +308,7 @@ class EdgeTTSEntity(TextToSpeechEntity):
         buffer = ""
         count = 0
         async for message in request.message_gen:
-            _LOGGER.debug("Streaming tts sentence: %s", message)
+            _LOGGER.debug("Streaming tts sentence: message_chars=%d", len(message))
             count += 1
             min_len = 2**count * 10
             for char in message:
