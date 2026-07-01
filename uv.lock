@@ -1011,7 +1011,7 @@ wheels = [
 
 [[package]]
 name = "hass-edge-tts"
-version = "0.8.2"
+version = "0.8.3"
 source = { virtual = "." }
 
 [package.dev-dependencies]
