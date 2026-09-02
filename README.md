@@ -2,95 +2,97 @@
 
 [English](README.md) | [简体中文](README.zh-Hans.md)
 
-A Home Assistant custom integration that exposes Microsoft Edge's free TTS
-service as a Home Assistant TTS engine. No Azure app key is required.
+[![CI](https://github.com/Tinnci/hass-edge-tts/actions/workflows/ci.yml/badge.svg)](https://github.com/Tinnci/hass-edge-tts/actions/workflows/ci.yml)
+[![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://www.hacs.xyz/docs/faq/custom_repositories/)
 
-This repository is a maintained fork of
-[`hasscc/hass-edge-tts`](https://github.com/hasscc/hass-edge-tts) by
-[@Tinnci](https://github.com/Tinnci). It keeps the original integration's user
-surface while adding current Home Assistant compatibility, a config/options
-flow, live voice catalogue support, tests, linting, and CI.
+Use Microsoft Edge voices as a Home Assistant text-to-speech engine.
 
-All credit for the original integration goes to
-[@al-one](https://github.com/al-one), [@rany2](https://github.com/rany2), and
-[@dscao](https://github.com/dscao).
+The integration does not require an Azure application key. It supports Home
+Assistant config entries, `tts.speak`, live voice discovery, and private
+diagnostics.
 
-This maintained distribution is source-available for non-commercial use under
-the PolyForm Noncommercial License 1.0.0. Upstream-derived portions keep their
-original notices and license terms; see `NOTICE.md`.
+This repository maintains the user interface of
+[`hasscc/hass-edge-tts`](https://github.com/hasscc/hass-edge-tts). It also adds
+current Home Assistant support, tests, lint rules, and continuous integration.
 
-## Current capabilities
+> [!IMPORTANT]
+> Microsoft can change or restrict the Edge speech service without notice.
+> Do not use this unofficial integration for a critical speech path.
 
-- Home Assistant config flow and options flow.
-- TTS entity compatible with `tts.speak` and `/api/tts_get_url`.
-- Live Microsoft voice catalogue fetch at startup.
-- Bundled 322-voice snapshot as an offline fallback.
-- Voice picker support in the Home Assistant UI.
-- `edge_tts.list_voices` service with `language` and `gender` filters.
-- Per-call and default prosody options:
-  - `voice`
-  - `rate`
-  - `pitch`
-  - `volume`
-- Numeric prosody normalization, for example `rate: 10` -> `+10%`.
-- Latest synthesis trace exposed through `hass.data["edge_tts"]` and the TTS
-  entity attribute `last_synthesis_trace`. The trace records status, voice,
-  prosody, message character count, audio bytes, chunk counts, elapsed time,
-  and failure phase without retaining spoken text.
-- Legacy direct proxy helper through the integration's HTTP view.
-- Test suite that loads the custom integration in a real HA test harness.
+## Features
 
-`style`, `styledegree`, `role`, and `contour` are intentionally not supported.
+- Home Assistant config flow and options flow
+- A TTS entity for `tts.speak` and `/api/tts_get_url`
+- Live Microsoft voice catalogue retrieval
+- A bundled 322-voice catalogue when the live request fails
+- Voice selection in the Home Assistant user interface
+- `edge_tts.list_voices` with language and gender filters
+- Default and per-call rate, pitch, volume, and voice settings
+- Numeric prosody conversion, such as `rate: 10` to `+10%`
+- A legacy direct proxy endpoint for existing clients
 
-## Install
+The integration does not support `style`, `styledegree`, `role`, or `contour`.
 
-### HACS custom repository
+## Diagnostics and privacy
+
+Home Assistant can download config-entry diagnostics for this integration.
+The System Health page also shows a small operational summary.
+
+The diagnostic data includes:
+
+- the integration version,
+- the voice catalogue source and size,
+- configured locale and prosody settings,
+- the latest synthesis status and duration,
+- audio byte and chunk counts,
+- the failure phase when synthesis fails.
+
+The data does not include spoken text, proxy tokens, or the full voice
+catalogue. The latest synthesis trace records only the message character count.
+
+The TTS entity exposes the same bounded trace in the
+`last_synthesis_trace` attribute. Home Assistant also stores it in
+`hass.data["edge_tts"]` for local diagnostics.
+
+## Installation
+
+### HACS
 
 [![Install repository](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Tinnci&repository=hass-edge-tts&category=integration)
 
-1. Add `https://github.com/Tinnci/hass-edge-tts` as a HACS custom repository.
-2. Install `Microsoft Edge TTS`.
-3. Restart Home Assistant.
-4. Add the integration from Settings -> Devices & services.
+1. Open HACS.
+2. Add `https://github.com/Tinnci/hass-edge-tts` as a custom integration repository.
+3. Install **Microsoft Edge TTS**.
+4. Restart Home Assistant.
+5. Add the integration from **Settings > Devices & services**.
 
-### Manual install
+### Manual installation
 
-Copy:
+1. Copy `custom_components/edge_tts` to `<ha-config>/custom_components/edge_tts`.
+2. Restart Home Assistant.
+3. Add the integration from **Settings > Devices & services**.
 
-```text
-custom_components/edge_tts
-```
-
-to:
-
-```text
-<ha-config>/custom_components/edge_tts
-```
-
-Then restart Home Assistant.
-
-## Configure
+## Configuration
 
 [![Add Integration](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start?domain=edge_tts)
 
-The options flow stores default synthesis settings on the config entry:
+The options flow stores these defaults:
 
 - language,
-- default voice,
+- voice,
 - speech rate,
 - pitch,
 - volume.
 
-Per-call options always override those defaults.
+A service call can override each default.
 
 ## Voice catalogue
 
-All voices Microsoft exposes through `edge-tts` are supported. At startup the
-integration tries to fetch the live catalogue. If Microsoft is unreachable, the
-bundled snapshot is used so the integration still starts and the picker still
-has voices.
+The integration requests the current voice catalogue during startup. It uses
+the bundled catalogue if Microsoft is not available. This fallback keeps the
+integration and voice picker available.
 
-List voices from Home Assistant:
+List Chinese voices:
 
 ```yaml
 action: edge_tts.list_voices
@@ -99,20 +101,18 @@ data:
 response_variable: voices
 ```
 
-Optional filters:
+The `language` filter accepts a locale prefix such as `zh`, `zh-CN`, or `en`.
+The `gender` filter accepts `Female` or `Male`.
 
-- `language`: locale prefix such as `zh`, `zh-CN`, `en`, `ja`.
-- `gender`: `Female` or `Male`.
-
-Regenerate the bundled snapshot after Microsoft ships new voices:
+Refresh the bundled catalogue after Microsoft adds voices:
 
 ```bash
 uv run python scripts/refresh_voices.py
 ```
 
-## Examples
+## Usage
 
-### Basic `tts.speak`
+### Speak with one voice
 
 ```yaml
 action: tts.speak
@@ -124,7 +124,7 @@ data:
   language: zh-CN-XiaoyiNeural
 ```
 
-### Full options
+### Override prosody
 
 ```yaml
 action: tts.speak
@@ -142,56 +142,60 @@ data:
     volume: +10%
 ```
 
-### REST `tts_get_url`
+## Runtime boundary
 
-```bash
-curl -X POST \
-  -H "Authorization: Bearer <ACCESS_TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{"engine_id":"tts.edge_tts","message":"欢迎回家","language":"zh-CN-XiaoyiNeural","cache":true,"options":{"volume":"+10%"}}' \
-  http://homeassistant.local:8123/api/tts_get_url
-```
+This integration only synthesizes speech. It does not control satellite volume,
+microphone gain, wake-word sensitivity, audio routing, echo cancellation, or
+local fallback clips. The satellite runtime must own those functions.
 
 ## Development
 
-Use `uv`:
+Use `uv` for the Python environment.
 
 ```bash
 uv sync --dev
 uv run pytest
-uv run ruff check .
-uv run ruff format --check .
+uvx ruff check .
+uvx ruff format --check .
+git diff --check
 ```
 
-The tests cover:
+Tests cover setup, voice lookup, catalogue fallback, prosody conversion, audio
+streaming, diagnostics, and System Health.
 
-- config flow and options flow,
-- supported language/voice lookup,
-- live catalogue fallback,
-- `edge_tts.list_voices`,
-- prosody normalization,
-- TTS audio streaming from `edge_tts.Communicate`.
+## Security
 
-## Notes for voice assistant deployments
+- Do not put Home Assistant access tokens in issues.
+- Do not publish spoken household text in logs or screenshots.
+- Download Home Assistant diagnostics before you report a synthesis defect.
 
-This integration only synthesizes speech. It does not control satellite speaker
-volume, wakeword sensitivity, microphone gain, OPUS fallback clips,
-capture/playback routing, or AEC policy. Those belong to the satellite runtime
-around `wyoming-satellite`.
+## Credits
 
-## Links
+The original integration was created by
+[@al-one](https://github.com/al-one), [@rany2](https://github.com/rany2), and
+[@dscao](https://github.com/dscao).
 
-- <https://github.com/rany2/edge-tts>
-- <https://github.com/hasscc/hass-edge-tts>
-- <https://www.home-assistant.io/integrations/tts/>
+See also:
+
+- [`rany2/edge-tts`](https://github.com/rany2/edge-tts)
+- [`hasscc/hass-edge-tts`](https://github.com/hasscc/hass-edge-tts)
+- [Home Assistant TTS](https://www.home-assistant.io/integrations/tts/)
+
+## Documentation style
+
+This README applies practical rules from ASD-STE100 Simplified Technical
+English, Issue 9. It uses active voice, short sentences, and consistent terms.
+
+This use is not an ASD-STE100 compliance certification. Project-specific terms
+remain necessary.
+
+Reference: ASD STEMG. [ASD-STE100 Simplified Technical English](https://www.asd-ste100.org/), Issue 9, 2025.
 
 ## License
 
-Source-available for non-commercial use under the PolyForm Noncommercial
-License 1.0.0. See `LICENSE`.
+This source is available for non-commercial use under the
+[PolyForm Noncommercial License 1.0.0](LICENSE).
 
-Commercial use is not permitted without a separate license. This is not an OSI
-open-source license because commercial use is restricted.
-
-Upstream-derived portions keep their original notices and license terms. See
-`NOTICE.md`.
+Commercial use requires a separate license. This license is not an OSI
+open-source license. Upstream-derived files keep their original notices and
+terms. See [NOTICE.md](NOTICE.md).

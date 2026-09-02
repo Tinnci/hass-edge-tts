@@ -32,6 +32,14 @@
 
 `style`、`styledegree`、`role` 和 `contour` 目前刻意不支持。
 
+## 诊断与隐私
+
+Home Assistant 可以下载本集成的原生 config-entry diagnostics。System
+Health 页面也会显示音色目录来源、目录数量、最近合成状态和耗时。
+
+诊断数据不会包含朗读原文、proxy token 或完整音色目录。最近一次合成
+trace 只保留消息字符数、音频字节数、chunk 数、耗时和失败阶段。
+
 ## 安装
 
 ### HACS 自定义仓库
@@ -146,8 +154,8 @@ curl -X POST \
 ```bash
 uv sync --dev
 uv run pytest
-uv run ruff check .
-uv run ruff format --check .
+uvx ruff check .
+uvx ruff format --check .
 ```
 
 测试覆盖：
@@ -158,6 +166,7 @@ uv run ruff format --check .
 - `edge_tts.list_voices`，
 - prosody 参数归一化，
 - 通过 `edge_tts.Communicate` 拉取 TTS 音频流。
+- 原生 diagnostics 和 System Health 输出。
 
 ## 语音助手部署说明
 

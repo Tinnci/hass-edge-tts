@@ -20,6 +20,10 @@ ignore = [
     "D203",
     "D213",
 
+    # The repository records attribution in LICENSE and NOTICE instead of a
+    # repeated copyright header in every source file.
+    "CPY001",
+
     # Home Assistant components conventionally use relative imports (`.const`).
     "TID252",
 
