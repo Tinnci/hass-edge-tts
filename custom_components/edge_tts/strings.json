@@ -40,5 +40,13 @@
         }
       }
     }
+  },
+  "system_health": {
+    "info": {
+      "voice_catalog_source": "Voice catalogue source",
+      "voice_catalog_size": "Voice catalogue size",
+      "last_synthesis_status": "Last synthesis status",
+      "last_synthesis_elapsed_ms": "Last synthesis elapsed time"
+    }
   }
 }

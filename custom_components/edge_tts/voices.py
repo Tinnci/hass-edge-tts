@@ -22,6 +22,7 @@ _LOGGER = logging.getLogger(__name__)
 
 # Key under ``hass.data[DOMAIN]`` where the resolved catalogue is cached.
 CATALOG_KEY = "voice_catalog"
+CATALOG_SOURCE_KEY = "voice_catalog_source"
 
 # A single normalised voice record.
 VoiceEntry = dict[str, Any]
@@ -73,6 +74,7 @@ async def async_get_voice_catalog(
         live = await edge_tts.list_voices()
         catalog = [_normalize(voice) for voice in live]
         catalog.sort(key=lambda entry: entry["short_name"])
+        source = "live"
         _LOGGER.debug("Fetched %d voices from Edge TTS", len(catalog))
     except Exception as err:  # noqa: BLE001 - network boundary; degrade gracefully
         _LOGGER.warning(
@@ -82,8 +84,10 @@ async def async_get_voice_catalog(
             len(VOICES),
         )
         catalog = _static_catalog()
+        source = "bundled_fallback"
 
     domain_data[CATALOG_KEY] = catalog
+    domain_data[CATALOG_SOURCE_KEY] = source
     return catalog
 
 

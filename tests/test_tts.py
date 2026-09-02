@@ -32,6 +32,10 @@ async def test_entry_sets_up_tts_entity(hass: HomeAssistant) -> None:
     await hass.async_block_till_done()
 
     assert entry.state is ConfigEntryState.LOADED
+    assert "access_tokens" in hass.data[DOMAIN]
+    assert "access_tokens" not in str(
+        [state.attributes for state in hass.states.async_all()]
+    )
     tts_entities = [
         s.entity_id for s in hass.states.async_all() if s.entity_id.startswith("tts.")
     ]

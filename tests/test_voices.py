@@ -6,6 +6,7 @@ from homeassistant.core import HomeAssistant
 
 from custom_components.edge_tts.const import VOICES
 from custom_components.edge_tts.voices import (
+    CATALOG_SOURCE_KEY,
     async_get_voice_catalog,
     cached_catalog,
     voice_label,
@@ -27,6 +28,7 @@ async def test_live_catalog_is_normalized_and_cached(
     again = await async_get_voice_catalog(hass)
     assert again is catalog
     assert mock_list_voices.await_count == 1
+    assert hass.data["edge_tts"][CATALOG_SOURCE_KEY] == "live"
 
 
 async def test_catalog_falls_back_to_snapshot_when_offline(
@@ -37,6 +39,7 @@ async def test_catalog_falls_back_to_snapshot_when_offline(
     catalog = await async_get_voice_catalog(hass)
     assert len(catalog) == len(VOICES)
     assert all("short_name" in entry for entry in catalog)
+    assert hass.data["edge_tts"][CATALOG_SOURCE_KEY] == "bundled_fallback"
 
 
 def test_cached_catalog_without_cache_uses_snapshot(hass: HomeAssistant) -> None:

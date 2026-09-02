@@ -115,14 +115,15 @@ class EdgeTTSEntity(TextToSpeechEntity):
     async def async_added_to_hass(self) -> None:
         domain_data = self.hass.data.setdefault(DOMAIN, {})
         domain_data["tts_entity_id"] = self.entity_id
-        access_tokens = domain_data.setdefault(
+        domain_data.setdefault(
             "access_tokens",
             {
                 "temp": ulid.ulid_hex(),
                 "long": self.hass.data["core.uuid"],
             },
         )
-        self._attr_extra_state_attributes["access_tokens"] = access_tokens.copy()
+        # Tokens are runtime authentication material for the legacy proxy and
+        # must never be exposed as entity attributes or Recorder history.
 
         # Warm the voice catalogue so the voice picker is populated. Failures
         # degrade to the bundled snapshot inside async_get_voice_catalog.

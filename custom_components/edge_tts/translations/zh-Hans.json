@@ -40,5 +40,13 @@
         }
       }
     }
+  },
+  "system_health": {
+    "info": {
+      "voice_catalog_source": "音色目录来源",
+      "voice_catalog_size": "音色目录数量",
+      "last_synthesis_status": "最近合成状态",
+      "last_synthesis_elapsed_ms": "最近合成耗时"
+    }
   }
 }
