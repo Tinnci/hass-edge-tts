@@ -7,3 +7,5 @@ __pycache__/
 .mypy_cache/
 test_configuration/
 custom_components/edge_tts/edge_tts.zip
+.DS_Store
+/edge_tts.zip

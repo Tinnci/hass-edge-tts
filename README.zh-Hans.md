@@ -180,6 +180,9 @@ uvx ruff format --check .
 
 ## 许可证
 
+发布包、版本同步和 HACS 自定义仓库的许可证校验范围见
+[发布准备](docs/releasing.md)。
+
 本维护发行版以 PolyForm Noncommercial License 1.0.0 提供源码，仅允许非商业用途。详见 `LICENSE`。
 
 由于限制商业使用，它不是 OSI 开源许可证。商业使用需要获得维护者的单独授权。

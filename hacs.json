@@ -1,4 +1,7 @@
 {
     "name": "Microsoft Edge TTS",
-    "render_readme": true
+    "render_readme": true,
+    "homeassistant": "2026.6.3",
+    "zip_release": true,
+    "filename": "edge_tts.zip"
 }

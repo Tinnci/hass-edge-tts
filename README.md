@@ -2,7 +2,7 @@
 
 [English](README.md) | [简体中文](README.zh-Hans.md)
 
-[![CI](https://github.com/Tinnci/hass-edge-tts/actions/workflows/ci.yml/badge.svg)](https://github.com/Tinnci/hass-edge-tts/actions/workflows/ci.yml)
+[![CI](https://github.com/Tinnci/hass-edge-tts/actions/workflows/validate.yaml/badge.svg)](https://github.com/Tinnci/hass-edge-tts/actions/workflows/validate.yaml)
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://www.hacs.xyz/docs/faq/custom_repositories/)
 
 Use Microsoft Edge voices as a Home Assistant text-to-speech engine.
@@ -68,7 +68,7 @@ The TTS entity exposes the same bounded trace in the
 
 ### Manual installation
 
-1. Copy `custom_components/edge_tts` to `<ha-config>/custom_components/edge_tts`.
+1. Extract the release's `edge_tts.zip` directly into `<ha-config>/custom_components/edge_tts`.
 2. Restart Home Assistant.
 3. Add the integration from **Settings > Devices & services**.
 
@@ -153,15 +153,18 @@ local fallback clips. The satellite runtime must own those functions.
 Use `uv` for the Python environment.
 
 ```bash
-uv sync --dev
+uv sync --locked --group dev
 uv run pytest
-uvx ruff check .
-uvx ruff format --check .
+uv run ruff check .
+uv run ruff format --check .
 git diff --check
 ```
 
 Tests cover setup, voice lookup, catalogue fallback, prosody conversion, audio
 streaming, diagnostics, and System Health.
+
+See [Release preparation / 发布准备](docs/releasing.md) for version 0.9.0,
+the HACS archive, local brand assets and custom-repository license handling.
 
 ## Security
 
